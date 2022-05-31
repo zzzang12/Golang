@@ -35,7 +35,7 @@ func main() {
 	for {
 		menu := 0
 
-		fmt.Println("1. 구매")
+		fmt.Println("1. 물건 구매")
 		fmt.Println("2. 잔여 수량 확인")
 		fmt.Println("3. 잔여 마일리지 확인")
 		fmt.Println("4. 배송 상태 확인")
@@ -49,7 +49,7 @@ func main() {
 		if menu == 1 { // 물건 구매
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
-		} else if menu == 2 { // 남은 수량 확인
+		} else if menu == 2 { // 잔여 수량 확인
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
 		} else if menu == 3 { // 잔여 마일리지 확인
