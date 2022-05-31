@@ -51,24 +51,25 @@ func main() {
 		fmt.Scanln(&menuChoice)
 		fmt.Println()
 
-		if menuChoice == 1 { // 상품 구매
+		switch menuChoice {
+		case 1: // 상품 구매
 			ReturnToMenu()
-		} else if menuChoice == 2 { // 잔여 수량 확인
+		case 2: // 잔여 수량 확인
 			for _, v := range items {
 				fmt.Printf("%s의 잔여 수량은 %d개입니다.\n", v.name, v.amount)
 			}
 			ReturnToMenu()
-		} else if menuChoice == 3 { // 잔여 마일리지 확인
+		case 3: // 잔여 마일리지 확인
 			fmt.Printf("현재 잔여 마일리지는 %d점입니다.\n", buyer.point)
 			ReturnToMenu()
-		} else if menuChoice == 4 { // 배송 상태 확인
+		case 4: // 배송 상태 확인
 			ReturnToMenu()
-		} else if menuChoice == 5 { // 장바구니 확인
+		case 5: // 장바구니 확인
 			ReturnToMenu()
-		} else if menuChoice == 6 { // 프로그램 종료
+		case 6: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
 			return
-		} else {
+		default:
 			fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
 		}
 	}
