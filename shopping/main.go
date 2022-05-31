@@ -35,18 +35,18 @@ func main() {
 	for {
 		menu := 0
 
-		fmt.Println("1. 물건 구매")
+		fmt.Println("1. 상품 구매")
 		fmt.Println("2. 잔여 수량 확인")
 		fmt.Println("3. 잔여 마일리지 확인")
 		fmt.Println("4. 배송 상태 확인")
 		fmt.Println("5. 장바구니 확인")
 		fmt.Println("6. 프로그램 종료")
-		fmt.Print("실행할 기능을 입력하시오: ")
+		fmt.Print("실행할 기능을 입력하세요: ")
 
 		fmt.Scanln(&menu)
 		fmt.Println()
 
-		if menu == 1 { // 물건 구매
+		if menu == 1 { // 상품 구매
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
 		} else if menu == 2 { // 잔여 수량 확인
