@@ -50,9 +50,13 @@ func main() {
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
 		} else if menu == 2 { // 잔여 수량 확인
+			for _, v := range items {
+				fmt.Printf("%s의 잔여 수량: %d\n", v.name, v.amount)
+			}
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
 		} else if menu == 3 { // 잔여 마일리지 확인
+			fmt.Printf("현재 잔여 마일리지는 %d점입니다.\n", buyer.point)
 			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 			fmt.Scanln()
 		} else if menu == 4 { // 배송 상태 확인
