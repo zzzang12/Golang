@@ -22,6 +22,11 @@ func NewBuyer() *buyer {
 	return &b
 }
 
+func ReturnToMenu() {
+	fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
+	fmt.Scanln()
+}
+
 func main() {
 	items := make([]item, 5)
 	buyer := NewBuyer()
@@ -33,7 +38,7 @@ func main() {
 	items[4] = item{"빼빼로", 1200, 500}
 
 	for {
-		menu := 0
+		menuChoice := 0
 
 		fmt.Println("1. 상품 구매")
 		fmt.Println("2. 잔여 수량 확인")
@@ -43,29 +48,24 @@ func main() {
 		fmt.Println("6. 프로그램 종료")
 		fmt.Print("실행할 기능을 입력하세요: ")
 
-		fmt.Scanln(&menu)
+		fmt.Scanln(&menuChoice)
 		fmt.Println()
 
-		if menu == 1 { // 상품 구매
-			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
-			fmt.Scanln()
-		} else if menu == 2 { // 잔여 수량 확인
+		if menuChoice == 1 { // 상품 구매
+			ReturnToMenu()
+		} else if menuChoice == 2 { // 잔여 수량 확인
 			for _, v := range items {
-				fmt.Printf("%s의 잔여 수량: %d\n", v.name, v.amount)
+				fmt.Printf("%s의 잔여 수량은 %d개입니다.\n", v.name, v.amount)
 			}
-			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
-			fmt.Scanln()
-		} else if menu == 3 { // 잔여 마일리지 확인
+			ReturnToMenu()
+		} else if menuChoice == 3 { // 잔여 마일리지 확인
 			fmt.Printf("현재 잔여 마일리지는 %d점입니다.\n", buyer.point)
-			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
-			fmt.Scanln()
-		} else if menu == 4 { // 배송 상태 확인
-			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
-			fmt.Scanln()
-		} else if menu == 5 { // 장바구니 확인
-			fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
-			fmt.Scanln()
-		} else if menu == 6 { // 프로그램 종료
+			ReturnToMenu()
+		} else if menuChoice == 4 { // 배송 상태 확인
+			ReturnToMenu()
+		} else if menuChoice == 5 { // 장바구니 확인
+			ReturnToMenu()
+		} else if menuChoice == 6 { // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
 			return
 		} else {
