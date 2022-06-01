@@ -36,8 +36,10 @@ func BuyItem(item *Item, buyer *Buyer) {
 
 		if buyAmount > item.amount {
 			fmt.Println("남은 수량이 부족합니다.")
+			return
 		} else if item.price*buyAmount > buyer.point {
 			fmt.Println("마일리지가 부족합니다.")
+			return
 		} else {
 			for {
 				fmt.Println("1. 바로 구매")
@@ -95,23 +97,11 @@ func main() {
 				itemChoice := 0
 				fmt.Scanln(&itemChoice)
 
-				switch itemChoice {
-				case 1: // 텀블러
-					BuyItem(items[0], buyer)
+				if itemChoice >= 1 && itemChoice <= 5 {
+					BuyItem(items[itemChoice-1], buyer)
 					ReturnToMenu()
-				case 2: // 내셔널지오그래픽 롱패딩
-					BuyItem(items[1], buyer)
-					ReturnToMenu()
-				case 3: // 디스커버리 백팩2
-					BuyItem(items[2], buyer)
-					ReturnToMenu()
-				case 4: // 나이키 운동화
-					BuyItem(items[3], buyer)
-					ReturnToMenu()
-				case 5: // 빼빼로
-					BuyItem(items[4], buyer)
-					ReturnToMenu()
-				default:
+					break
+				} else {
 					fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
 				}
 			}
