@@ -18,7 +18,7 @@ type Buyer struct {
 func NewBuyer() *Buyer {
 	b := Buyer{}
 	b.point = 1000000
-	b.shoppingBucket = map[string]int{}
+	b.shoppingBucket = make(map[string]int)
 	return &b
 }
 
@@ -59,10 +59,20 @@ func BuyItem(item *Item, buyer *Buyer) {
 				case 1:
 					buyer.point -= item.price * buyAmount
 					item.amount -= buyAmount
-					fmt.Println("주문이 접수되었습니다.")
+					fmt.Println("상품의 주문이 접수되었습니다.")
 					return
 				case 2:
-
+					if _, isExist := buyer.shoppingBucket[item.name]; isExist {
+						if buyer.shoppingBucket[item.name]+buyAmount > item.amount {
+							panic("잔여 수량을 초과했습니다.")
+						} else {
+							buyer.shoppingBucket[item.name] += buyAmount
+						}
+					} else {
+						buyer.shoppingBucket[item.name] = buyAmount
+					}
+					fmt.Println("상품이 장바구니에 추가되었습니다.")
+					return
 				default:
 					fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
 				}
