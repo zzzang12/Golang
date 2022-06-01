@@ -11,20 +11,29 @@ type Item struct {
 }
 
 type Buyer struct {
-	point          int
-	shoppingBucket map[string]int
+	point  int
+	bucket []*Item
 }
 
 func NewBuyer() *Buyer {
 	b := Buyer{}
 	b.point = 1000000
-	b.shoppingBucket = make(map[string]int)
+	b.bucket = make([]*Item, 5)
 	return &b
 }
 
 func ReturnToMenu() {
 	fmt.Println("엔터를 입력하면 메뉴 화면으로 돌아갑니다.")
 	fmt.Scanln()
+}
+
+func Contains(item *Item, bucket []*Item) (bool, int) {
+	for i, v := range bucket {
+		if v.name == item.name {
+			return true, i
+		}
+	}
+	return false, -1
 }
 
 func BuyItem(item *Item, buyer *Buyer) {
@@ -62,14 +71,14 @@ func BuyItem(item *Item, buyer *Buyer) {
 					fmt.Println("상품의 주문이 접수되었습니다.")
 					return
 				case 2:
-					if _, isExist := buyer.shoppingBucket[item.name]; isExist {
-						if buyer.shoppingBucket[item.name]+buyAmount > item.amount {
+					if isContain, index := Contains(item, buyer.bucket); isContain {
+						if buyer.bucket[index].amount+buyAmount > item.amount {
 							panic("잔여 수량을 초과했습니다.")
 						} else {
-							buyer.shoppingBucket[item.name] += buyAmount
+							buyer.bucket[index].amount += buyAmount
 						}
 					} else {
-						buyer.shoppingBucket[item.name] = buyAmount
+						buyer.bucket = append(buyer.bucket, &Item{item.name, item.price, buyAmount})
 					}
 					fmt.Println("상품이 장바구니에 추가되었습니다.")
 					return
@@ -106,7 +115,7 @@ func main() {
 		switch menuChoice {
 		case 1: // 상품 구매
 			for idx, v := range items {
-				fmt.Printf("물품%d: %s, 가격: %d원, 잔여 수량: %d개\n", idx+1, v.name, v.price, v.amount)
+				fmt.Printf("상품%d: %s, 가격: %d원, 잔여 수량: %d개\n", idx+1, v.name, v.price, v.amount)
 			}
 			for {
 				fmt.Print("구매할 상품을 선택하세요: ")
