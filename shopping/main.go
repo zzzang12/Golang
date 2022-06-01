@@ -18,7 +18,7 @@ type Buyer struct {
 func NewBuyer() *Buyer {
 	b := Buyer{}
 	b.point = 1000000
-	b.bucket = make([]*Item, 5)
+	b.bucket = make([]*Item, 0, 5)
 	return &b
 }
 
@@ -27,8 +27,8 @@ func ReturnToMenu() {
 	fmt.Scanln()
 }
 
-func Contains(item *Item, bucket []*Item) (bool, int) {
-	for i, v := range bucket {
+func Contain(items []*Item, item *Item) (bool, int) {
+	for i, v := range items {
 		if v.name == item.name {
 			return true, i
 		}
@@ -66,12 +66,12 @@ func BuyItem(item *Item, buyer *Buyer) {
 
 				switch buyChoice {
 				case 1:
-					buyer.point -= item.price * buyAmount
+					buyer.point -= buyAmount * item.price
 					item.amount -= buyAmount
 					fmt.Println("상품의 주문이 접수되었습니다.")
 					return
 				case 2:
-					if isContain, index := Contains(item, buyer.bucket); isContain {
+					if isContain, index := Contain(buyer.bucket, item); isContain {
 						if buyer.bucket[index].amount+buyAmount > item.amount {
 							panic("잔여 수량을 초과했습니다.")
 						} else {
@@ -90,7 +90,39 @@ func BuyItem(item *Item, buyer *Buyer) {
 	}
 }
 
+func BucketTotal(bucket []*Item) (bucketTotal int) {
+	for _, v := range bucket {
+		bucketTotal += v.price * v.amount
+	}
+	return
+}
+
+func IsAmountOver(items, bucket []*Item) (isAmountOver bool, overList []Item) {
+	for _, v := range bucket {
+		if _, index := Contain(items, v); v.amount > items[index].amount {
+			isAmountOver = true
+			overList = append(overList, Item{v.name, v.price, v.amount - items[index].amount})
+		}
+	}
+	return isAmountOver, overList
+}
+
+func BuyBucket(items []*Item, buyer *Buyer) {
+	for _, v := range buyer.bucket {
+		buyer.point -= v.amount * v.price
+		_, index := Contain(items, v)
+		items[index].amount -= v.amount
+	}
+	fmt.Println("상품의 주문이 접수되었습니다.")
+}
+
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+
 	items := make([]*Item, 5)
 	buyer := NewBuyer()
 
@@ -141,7 +173,40 @@ func main() {
 		case 4: // 배송 상태 확인
 			ReturnToMenu()
 		case 5: // 장바구니 확인
-			ReturnToMenu()
+			if len(buyer.bucket) == 0 {
+				fmt.Println("장바구니가 비었습니다.")
+				ReturnToMenu()
+				break
+			} else {
+				for _, v := range buyer.bucket {
+					fmt.Printf("상품: %s, 수량: %d\n", v.name, v.amount)
+				}
+			}
+
+			for {
+				fmt.Println("장바구니에 있는 상품들을 주문하려면 '구매'을 입력하세요: ")
+				bucketChoice := ""
+				fmt.Scanln(&bucketChoice)
+				fmt.Println()
+
+				if bucketChoice == "구매" {
+					if bucketTotal := BucketTotal(buyer.bucket); bucketTotal > buyer.point {
+						panic(fmt.Sprintf("마일리지가 %d점 부족합니다.", bucketTotal-buyer.point))
+					} else if isAmountOver, overList := IsAmountOver(items, buyer.bucket); isAmountOver {
+						var errStr string
+						for _, v := range overList {
+							errStr += fmt.Sprintf("%s가 %d개 초과했습니다.\n", v.name, v.amount)
+						}
+						panic(errStr)
+					} else {
+						BuyBucket(items, buyer)
+						ReturnToMenu()
+						break
+					}
+				}
+				ReturnToMenu()
+				break
+			}
 		case 6: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
 			return

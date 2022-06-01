@@ -1,12 +1,11 @@
 package main
 
-import (
-	"fmt"
-	"runtime"
-)
+import "fmt"
 
 func main() {
-	fmt.Println("Hello World")
-	fmt.Println(runtime.GOMAXPROCS(runtime.NumCPU()))
-
+	temp := make([]int, 5)
+	fmt.Println(len(temp))
+	if len(temp) == 0 {
+		fmt.Println("비었넹")
+	}
 }
