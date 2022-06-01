@@ -28,18 +28,24 @@ func ReturnToMenu() {
 }
 
 func BuyItem(item *Item, buyer *Buyer) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+
 	for {
 		fmt.Print("구매할 수량을 입력하세요: ")
 		buyAmount := 0
 		fmt.Scanln(&buyAmount)
 		fmt.Println()
 
-		if buyAmount > item.amount {
-			fmt.Println("남은 수량이 부족합니다.")
-			return
+		if buyAmount <= 0 {
+			panic("올바른 수량을 입력하세요.")
+		} else if buyAmount > item.amount {
+			panic("남은 수량이 부족합니다.")
 		} else if item.price*buyAmount > buyer.point {
-			fmt.Println("마일리지가 부족합니다.")
-			return
+			panic("마일리지가 부족합니다.")
 		} else {
 			for {
 				fmt.Println("1. 바로 구매")
