@@ -15,11 +15,11 @@ type Buyer struct {
 	shoppingBucket map[string]int
 }
 
-func NewBuyer() Buyer {
+func NewBuyer() *Buyer {
 	b := Buyer{}
 	b.point = 1000000
 	b.shoppingBucket = map[string]int{}
-	return b
+	return &b
 }
 
 func ReturnToMenu() {
@@ -39,21 +39,39 @@ func BuyItem(item *Item, buyer *Buyer) {
 		} else if item.price*buyAmount > buyer.point {
 			fmt.Println("마일리지가 부족합니다.")
 		} else {
+			for {
+				fmt.Println("1. 바로 구매")
+				fmt.Println("2. 장바구니에 담기")
+				fmt.Print("구매할 방법을 선택하세요: ")
+				buyChoice := 0
+				fmt.Scanln(&buyChoice)
+				fmt.Println()
 
-			return
+				switch buyChoice {
+				case 1:
+					buyer.point -= item.price * buyAmount
+					item.amount -= buyAmount
+					fmt.Println("주문이 접수되었습니다.")
+					return
+				case 2:
+
+				default:
+					fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
+				}
+			}
 		}
 	}
 }
 
 func main() {
-	items := make([]Item, 5)
+	items := make([]*Item, 5)
 	buyer := NewBuyer()
 
-	items[0] = Item{"텀블러", 10000, 30}
-	items[1] = Item{"내셔널지오그래픽 롱패딩", 500000, 20}
-	items[2] = Item{"디스커버리 백팩", 400000, 20}
-	items[3] = Item{"나이키 운동화", 150000, 50}
-	items[4] = Item{"빼빼로", 1200, 500}
+	items[0] = &Item{"텀블러", 10000, 30}
+	items[1] = &Item{"내셔널지오그래픽 롱패딩", 500000, 20}
+	items[2] = &Item{"디스커버리 백팩", 400000, 20}
+	items[3] = &Item{"나이키 운동화", 150000, 50}
+	items[4] = &Item{"빼빼로", 1200, 500}
 
 	for {
 		fmt.Println("1. 상품 구매")
@@ -74,26 +92,29 @@ func main() {
 			}
 			for {
 				fmt.Print("구매할 상품을 선택하세요: ")
-				ItemChoice := 0
-				fmt.Scanln(&ItemChoice)
-				fmt.Println()
+				itemChoice := 0
+				fmt.Scanln(&itemChoice)
 
-				switch ItemChoice {
+				switch itemChoice {
 				case 1: // 텀블러
-					BuyItem(&items[0], &buyer)
+					BuyItem(items[0], buyer)
+					ReturnToMenu()
 				case 2: // 내셔널지오그래픽 롱패딩
-					BuyItem(&items[1], &buyer)
-				case 3: // 디스커버리 백팩
-					BuyItem(&items[2], &buyer)
+					BuyItem(items[1], buyer)
+					ReturnToMenu()
+				case 3: // 디스커버리 백팩2
+					BuyItem(items[2], buyer)
+					ReturnToMenu()
 				case 4: // 나이키 운동화
-					BuyItem(&items[3], &buyer)
+					BuyItem(items[3], buyer)
+					ReturnToMenu()
 				case 5: // 빼빼로
-					BuyItem(&items[4], &buyer)
+					BuyItem(items[4], buyer)
+					ReturnToMenu()
 				default:
 					fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
 				}
 			}
-			ReturnToMenu()
 		case 2: // 잔여 수량 확인
 			for _, v := range items {
 				fmt.Printf("%s의 잔여 수량은 %d개입니다.\n", v.name, v.amount)
