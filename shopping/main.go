@@ -107,13 +107,29 @@ func IsAmountOver(items, bucket []*Item) (isAmountOver bool, overList []Item) {
 	return isAmountOver, overList
 }
 
+func ClearBucket(bucket []*Item) {
+	bucket = make([]*Item, 0, 5)
+}
+
 func BuyBucket(items []*Item, buyer *Buyer) {
-	for _, v := range buyer.bucket {
-		buyer.point -= v.amount * v.price
-		_, index := Contain(items, v)
-		items[index].amount -= v.amount
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+
+	if len(buyer.bucket) == 0 {
+		panic("주문 가능한 목록이 없습니다.")
+	} else {
+		for _, v := range buyer.bucket {
+			buyer.point -= v.amount * v.price
+			_, index := Contain(items, v)
+			items[index].amount -= v.amount
+		}
+		fmt.Println("상품의 주문이 접수되었습니다.")
 	}
-	fmt.Println("상품의 주문이 접수되었습니다.")
+
+	ClearBucket(buyer.bucket)
 }
 
 func main() {
@@ -182,14 +198,18 @@ func main() {
 					fmt.Printf("상품: %s, 수량: %d\n", v.name, v.amount)
 				}
 			}
-
+		bucketChoice:
 			for {
-				fmt.Println("장바구니에 있는 상품들을 주문하려면 '구매'을 입력하세요: ")
-				bucketChoice := ""
+				fmt.Println("1. 장바구니 상품 주문")
+				fmt.Println("2. 장바구니 초기화")
+				fmt.Println("3. 메뉴로 돌아가기")
+				fmt.Print("실행할 기능을 입력하세요: ")
+				bucketChoice := 0
 				fmt.Scanln(&bucketChoice)
 				fmt.Println()
 
-				if bucketChoice == "구매" {
+				switch bucketChoice {
+				case 1:
 					if bucketTotal := BucketTotal(buyer.bucket); bucketTotal > buyer.point {
 						panic(fmt.Sprintf("마일리지가 %d점 부족합니다.", bucketTotal-buyer.point))
 					} else if isAmountOver, overList := IsAmountOver(items, buyer.bucket); isAmountOver {
@@ -201,11 +221,16 @@ func main() {
 					} else {
 						BuyBucket(items, buyer)
 						ReturnToMenu()
-						break
+						break bucketChoice
 					}
+				case 2:
+					ClearBucket(buyer.bucket)
+					break bucketChoice
+				case 3:
+					break bucketChoice
+				default:
+					fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
 				}
-				ReturnToMenu()
-				break
 			}
 		case 6: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
