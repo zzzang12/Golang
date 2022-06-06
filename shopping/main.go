@@ -142,12 +142,6 @@ func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery) {
 	}
 }
 
-func CheckRemainingAmount(items []*Item) {
-	for _, v := range items {
-		fmt.Printf("%s의 잔여 수량은 %d개입니다.\n", v.name, v.amount)
-	}
-}
-
 func CheckRemainingMileage(buyer *Buyer) {
 	fmt.Printf("현재 잔여 마일리지는 %d점입니다.\n", buyer.point)
 }
@@ -231,45 +225,47 @@ func main() {
 	items[4] = &Item{"빼빼로", 1200, 500}
 
 	for {
-		fmt.Println("1. 상품 구매")
-		fmt.Println("2. 잔여 수량 확인")
+		fmt.Println("1. 상품 확인")
+		fmt.Println("2. 상품 구매")
 		fmt.Println("3. 잔여 마일리지 확인")
 		fmt.Println("4. 배송 상태 확인")
-		fmt.Println("5. 장바구니 초기화")
-		fmt.Println("6. 장바구니 상품 주문")
-		fmt.Println("7. 프로그램 종료")
+		fmt.Println("5. 장바구니 확인")
+		fmt.Println("6. 장바구니 초기화")
+		fmt.Println("7. 장바구니 상품 주문")
+		fmt.Println("8. 프로그램 종료")
 		fmt.Print("실행할 기능을 입력하세요: ")
 		menuChoice := 0
 		fmt.Scanln(&menuChoice)
 		fmt.Println()
 
 		switch menuChoice {
-		case 1: // 상품 구매
+		case 1: // 상품 확인
 			PrintItems(items)
+			ReturnToMenu()
+		case 2: // 상품 구매
 			item, buyAmount := ChoiceItem(items, buyer)
 			BuyItem(buyer, item, buyAmount, delivery)
-			ReturnToMenu()
-		case 2: // 잔여 수량 확인
-			CheckRemainingAmount(items)
 			ReturnToMenu()
 		case 3: // 잔여 마일리지 확인
 			CheckRemainingMileage(buyer)
 			ReturnToMenu()
 		case 4: // 배송 상태 확인
 			ReturnToMenu()
-		case 5: // 장바구니 초기화
-			ClearBucket(buyer)
-			ReturnToMenu()
-		case 6: // 장바구니 상품 주문
+		case 5: // 장바구니 확인
 			if isEmpty := CheckBucketEmpty(buyer.bucket); isEmpty {
 				ReturnToMenu()
 				break
 			} else {
 				PrintBucket(buyer.bucket)
 			}
+			ReturnToMenu()
+		case 6: // 장바구니 초기화
+			ClearBucket(buyer)
+			ReturnToMenu()
+		case 7: // 장바구니 상품 주문
 			BuyBucket(buyer, items, delivery)
 			ReturnToMenu()
-		case 7: // 프로그램 종료
+		case 8: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
 			return
 		default:
