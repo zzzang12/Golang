@@ -22,10 +22,8 @@ type Truck struct {
 
 type Delivery struct {
 	numOrder int
-	Trucks
+	trucks   []*Truck
 }
-
-type Trucks []*Truck
 
 func NewBuyer() *Buyer {
 	buyer := Buyer{}
@@ -37,8 +35,8 @@ func NewBuyer() *Buyer {
 func NewDelivery() *Delivery {
 	delivery := Delivery{}
 	delivery.numOrder = 0
-	delivery.Trucks = make([]*Truck, 5, 5)
-	for i, v := range delivery.Trucks {
+	delivery.trucks = make([]*Truck, 5, 5)
+	for i, v := range delivery.trucks {
 		v.status = "주문접수" + fmt.Sprint(i)
 		v.packages = make([]*Item, 0, 5)
 	}
