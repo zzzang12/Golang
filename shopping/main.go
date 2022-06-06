@@ -15,11 +15,34 @@ type Buyer struct {
 	bucket []*Item
 }
 
+type Truck struct {
+	status   string
+	packages []*Item
+}
+
+type Delivery struct {
+	numOrder int
+	Trucks
+}
+
+type Trucks []*Truck
+
 func NewBuyer() *Buyer {
-	b := Buyer{}
-	b.point = 1000000
-	b.bucket = make([]*Item, 0, 5)
-	return &b
+	buyer := Buyer{}
+	buyer.point = 1000000
+	buyer.bucket = make([]*Item, 0, 5)
+	return &buyer
+}
+
+func NewDelivery() *Delivery {
+	delivery := Delivery{}
+	delivery.numOrder = 0
+	delivery.Trucks = make([]*Truck, 5, 5)
+	for i, v := range delivery.Trucks {
+		v.status = "주문접수" + fmt.Sprint(i)
+		v.packages = make([]*Item, 0, 5)
+	}
+	return &delivery
 }
 
 func ReturnToMenu() {
@@ -75,7 +98,7 @@ func Contains(items []*Item, item *Item) (bool, int) {
 	return false, -1
 }
 
-func BuyItem(item *Item, buyAmount int, buyer *Buyer) {
+func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -92,10 +115,15 @@ func BuyItem(item *Item, buyAmount int, buyer *Buyer) {
 
 		switch buyChoice {
 		case 1:
-			buyer.point -= buyAmount * item.price
-			item.amount -= buyAmount
-			fmt.Println("상품의 주문이 접수되었습니다.")
-			return
+			if delivery.numOrder <= 5 {
+				buyer.point -= buyAmount * item.price
+				item.amount -= buyAmount
+				fmt.Println("상품의 주문이 접수되었습니다.")
+				delivery.numOrder++
+				return
+			} else {
+				panic("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요.")
+			}
 		case 2:
 			if isContain, index := Contains(buyer.bucket, item); isContain {
 				if buyer.bucket[index].amount+buyAmount > item.amount {
@@ -155,11 +183,11 @@ func IsAmountOver(items, bucket []*Item) (isAmountOver bool, overList []Item) {
 	return isAmountOver, overList
 }
 
-func ClearBucket(bucket []*Item) {
-	bucket = make([]*Item, 0, 5)
+func ClearBucket(buyer *Buyer) {
+	buyer.bucket = make([]*Item, 0, 5)
 }
 
-func BuyBucket(items []*Item, buyer *Buyer) {
+func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -176,6 +204,8 @@ func BuyBucket(items []*Item, buyer *Buyer) {
 		panic(errStr)
 	} else if len(buyer.bucket) == 0 {
 		panic("주문 가능한 목록이 없습니다.")
+	} else if delivery.numOrder > 5 {
+		panic("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요.")
 	} else {
 		for _, v := range buyer.bucket {
 			buyer.point -= v.amount * v.price
@@ -183,41 +213,16 @@ func BuyBucket(items []*Item, buyer *Buyer) {
 			items[index].amount -= v.amount
 		}
 		fmt.Println("상품의 주문이 접수되었습니다.")
+		delivery.numOrder++
 
-		ClearBucket(buyer.bucket)
-	}
-}
-
-func ChoiceBucket(items []*Item, buyer *Buyer) {
-	for {
-		fmt.Println("1. 장바구니 상품 주문")
-		fmt.Println("2. 장바구니 초기화")
-		fmt.Println("3. 메뉴로 돌아가기")
-		fmt.Print("실행할 기능을 입력하세요: ")
-		bucketChoice := 0
-		fmt.Scanln(&bucketChoice)
-		fmt.Println()
-
-		switch bucketChoice {
-		case 1:
-			BuyBucket(items, buyer)
-			ReturnToMenu()
-			return
-		case 2:
-			ClearBucket(buyer.bucket)
-			ReturnToMenu()
-			return
-		case 3:
-			return
-		default:
-			fmt.Println("잘못된 입력입니다. 다시 입력해주세요.")
-		}
+		ClearBucket(buyer)
 	}
 }
 
 func main() {
 	items := make([]*Item, 5)
 	buyer := NewBuyer()
+	delivery := NewDelivery()
 
 	items[0] = &Item{"텀블러", 10000, 30}
 	items[1] = &Item{"내셔널지오그래픽 롱패딩", 500000, 20}
@@ -230,8 +235,9 @@ func main() {
 		fmt.Println("2. 잔여 수량 확인")
 		fmt.Println("3. 잔여 마일리지 확인")
 		fmt.Println("4. 배송 상태 확인")
-		fmt.Println("5. 장바구니 확인")
-		fmt.Println("6. 프로그램 종료")
+		fmt.Println("5. 장바구니 초기화")
+		fmt.Println("6. 장바구니 상품 주문")
+		fmt.Println("7. 프로그램 종료")
 		fmt.Print("실행할 기능을 입력하세요: ")
 		menuChoice := 0
 		fmt.Scanln(&menuChoice)
@@ -241,7 +247,7 @@ func main() {
 		case 1: // 상품 구매
 			PrintItems(items)
 			item, buyAmount := ChoiceItem(items, buyer)
-			BuyItem(item, buyAmount, buyer)
+			BuyItem(buyer, item, buyAmount, delivery)
 			ReturnToMenu()
 		case 2: // 잔여 수량 확인
 			CheckRemainingAmount(items)
@@ -251,15 +257,19 @@ func main() {
 			ReturnToMenu()
 		case 4: // 배송 상태 확인
 			ReturnToMenu()
-		case 5: // 장바구니 확인
+		case 5: // 장바구니 초기화
+			ClearBucket(buyer)
+			ReturnToMenu()
+		case 6: // 장바구니 상품 주문
 			if isEmpty := CheckBucketEmpty(buyer.bucket); isEmpty {
 				ReturnToMenu()
 				break
 			} else {
 				PrintBucket(buyer.bucket)
 			}
-			ChoiceBucket(items, buyer)
-		case 6: // 프로그램 종료
+			BuyBucket(buyer, items, delivery)
+			ReturnToMenu()
+		case 7: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
 			return
 		default:
