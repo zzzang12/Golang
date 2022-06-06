@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type Item struct {
@@ -21,8 +22,9 @@ type Truck struct {
 }
 
 type Delivery struct {
-	numOrder int
-	trucks   []*Truck
+	numOrder     int
+	deliveryList []*Item
+	trucks       []*Truck
 }
 
 func NewBuyer() *Buyer {
@@ -35,10 +37,10 @@ func NewBuyer() *Buyer {
 func NewDelivery() *Delivery {
 	delivery := Delivery{}
 	delivery.numOrder = 0
-	delivery.trucks = make([]*Truck, 5, 5)
-	for i, v := range delivery.trucks {
-		v.status = "주문접수" + fmt.Sprint(i)
-		v.packages = make([]*Item, 0, 5)
+	delivery.deliveryList = make([]*Item, 0, 5)
+	delivery.trucks = make([]*Truck, 5)
+	for i := range delivery.trucks {
+		delivery.trucks[i] = &Truck{"", make([]*Item, 0, 5)}
 	}
 	return &delivery
 }
@@ -54,7 +56,7 @@ func PrintItems(items []*Item) {
 	}
 }
 
-func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int) {
+func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int, err bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -77,12 +79,15 @@ func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int) {
 	fmt.Scanln(&buyAmount)
 	fmt.Println()
 
+	err = true
 	if buyAmount <= 0 {
 		panic("올바른 수량을 입력하세요.")
 	} else if buyAmount > item.amount {
 		panic("남은 수량이 부족합니다.")
 	} else if item.price*buyAmount > buyer.point {
 		panic("마일리지가 부족합니다.")
+	} else {
+		err = false
 	}
 	return
 }
@@ -96,7 +101,7 @@ func Contains(items []*Item, item *Item) (bool, int) {
 	return false, -1
 }
 
-func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery) {
+func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery, deliveryChan chan bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -117,6 +122,9 @@ func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery) {
 				buyer.point -= buyAmount * item.price
 				item.amount -= buyAmount
 				fmt.Println("상품의 주문이 접수되었습니다.")
+
+				delivery.deliveryList = append(delivery.deliveryList, &Item{item.name, item.price, buyAmount})
+				deliveryChan <- true
 				delivery.numOrder++
 				return
 			} else {
@@ -142,6 +150,26 @@ func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery) {
 
 func CheckRemainingMileage(buyer *Buyer) {
 	fmt.Printf("현재 잔여 마일리지는 %d점입니다.\n", buyer.point)
+}
+
+func CheckDeliveryStatus(delivery *Delivery) {
+	total := 0
+	for _, v := range delivery.trucks {
+		total += len(v.packages)
+	}
+	if total == 0 {
+		fmt.Println("배송 중인 상품이 없습니다.")
+	} else {
+		for _, v := range delivery.trucks {
+			if len(v.packages) != 0 {
+				for _, val := range v.packages {
+					fmt.Printf("%s %d개\n", val.name, val.amount)
+				}
+				fmt.Printf("배송 상황: %s\n", v.status)
+				fmt.Println()
+			}
+		}
+	}
 }
 
 func PrintBucket(bucket []*Item) {
@@ -179,7 +207,7 @@ func ClearBucket(buyer *Buyer) {
 	buyer.bucket = make([]*Item, 0, 5)
 }
 
-func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery) {
+func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery, deliveryChan chan bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -200,14 +228,41 @@ func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery) {
 		panic("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요.")
 	} else {
 		for _, v := range buyer.bucket {
+			delivery.deliveryList = append(delivery.deliveryList, &Item{v.name, v.price, v.amount})
 			buyer.point -= v.amount * v.price
 			_, index := Contains(items, v)
 			items[index].amount -= v.amount
 		}
 		fmt.Println("상품의 주문이 접수되었습니다.")
+
+		deliveryChan <- true
 		delivery.numOrder++
 
 		ClearBucket(buyer)
+	}
+}
+
+func DeliveryStatus(deliveryChan chan bool, delivery *Delivery, i int) {
+	for {
+		if <-deliveryChan {
+			for _, v := range delivery.deliveryList {
+				delivery.trucks[i].packages = append(delivery.trucks[i].packages, v)
+			}
+			delivery.deliveryList = make([]*Item, 0, 5)
+
+			delivery.trucks[i].status = "주문 접수"
+			time.Sleep(10 * time.Second)
+
+			delivery.trucks[i].status = "배송 중"
+			time.Sleep(30 * time.Second)
+
+			delivery.trucks[i].status = "배송 완료"
+			time.Sleep(10 * time.Second)
+
+			delivery.trucks[i].status = ""
+			delivery.numOrder--
+			delivery.trucks[i].packages = make([]*Item, 0, 5)
+		}
 	}
 }
 
@@ -215,12 +270,18 @@ func main() {
 	items := make([]*Item, 5)
 	buyer := NewBuyer()
 	delivery := NewDelivery()
+	deliveryChan := make(chan bool)
 
 	items[0] = &Item{"텀블러", 10000, 30}
 	items[1] = &Item{"내셔널지오그래픽 롱패딩", 500000, 20}
 	items[2] = &Item{"디스커버리 백팩", 400000, 20}
 	items[3] = &Item{"나이키 운동화", 150000, 50}
 	items[4] = &Item{"빼빼로", 1200, 500}
+
+	for i := 0; i < 5; i++ {
+		time.Sleep(time.Millisecond)
+		go DeliveryStatus(deliveryChan, delivery, i)
+	}
 
 	for {
 		fmt.Println("1. 상품 확인")
@@ -241,13 +302,18 @@ func main() {
 			PrintItems(items)
 			ReturnToMenu()
 		case 2: // 상품 구매
-			item, buyAmount := ChoiceItem(items, buyer)
-			BuyItem(buyer, item, buyAmount, delivery)
+			if item, buyAmount, err := ChoiceItem(items, buyer); err {
+				ReturnToMenu()
+				break
+			} else {
+				BuyItem(buyer, item, buyAmount, delivery, deliveryChan)
+			}
 			ReturnToMenu()
 		case 3: // 잔여 마일리지 확인
 			CheckRemainingMileage(buyer)
 			ReturnToMenu()
 		case 4: // 배송 상태 확인
+			CheckDeliveryStatus(delivery)
 			ReturnToMenu()
 		case 5: // 장바구니 확인
 			if isEmpty := CheckBucketEmpty(buyer.bucket); isEmpty {
@@ -261,7 +327,7 @@ func main() {
 			ClearBucket(buyer)
 			ReturnToMenu()
 		case 7: // 장바구니 상품 주문
-			BuyBucket(buyer, items, delivery)
+			BuyBucket(buyer, items, delivery, deliveryChan)
 			ReturnToMenu()
 		case 8: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
