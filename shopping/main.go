@@ -51,18 +51,12 @@ func ReturnToMenu() {
 }
 
 func PrintItems(items []*Item) {
-	for idx, v := range items {
-		fmt.Printf("상품%d: %s, 가격: %d원, 잔여 수량: %d개\n", idx+1, v.name, v.price, v.amount)
+	for i, v := range items {
+		fmt.Printf("상품%d: %s, 가격: %d원, 잔여 수량: %d개\n", i+1, v.name, v.price, v.amount)
 	}
 }
 
-func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int, err bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(r)
-		}
-	}()
-
+func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int, err error) {
 	for {
 		fmt.Print("구매할 상품을 선택하세요: ")
 		itemChoice := 0
@@ -79,15 +73,12 @@ func ChoiceItem(items []*Item, buyer *Buyer) (item *Item, buyAmount int, err boo
 	fmt.Scanln(&buyAmount)
 	fmt.Println()
 
-	err = true
 	if buyAmount <= 0 {
-		panic("올바른 수량을 입력하세요.")
+		err = fmt.Errorf("올바른 수량을 입력하세요")
 	} else if buyAmount > item.amount {
-		panic("남은 수량이 부족합니다.")
+		err = fmt.Errorf("남은 수량이 부족합니다")
 	} else if item.price*buyAmount > buyer.point {
-		panic("마일리지가 부족합니다.")
-	} else {
-		err = false
+		err = fmt.Errorf("마일리지가 부족합니다")
 	}
 	return
 }
@@ -101,13 +92,7 @@ func Contains(items []*Item, item *Item) (bool, int) {
 	return false, -1
 }
 
-func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery, deliveryChan chan bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(r)
-		}
-	}()
-
+func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery, deliveryChan chan bool) (err error) {
 	for {
 		fmt.Println("1. 바로 구매")
 		fmt.Println("2. 장바구니에 담기")
@@ -126,14 +111,14 @@ func BuyItem(buyer *Buyer, item *Item, buyAmount int, delivery *Delivery, delive
 				delivery.deliveryList = append(delivery.deliveryList, &Item{item.name, item.price, buyAmount})
 				deliveryChan <- true
 				delivery.numOrder++
-				return
 			} else {
-				panic("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요.")
+				err = fmt.Errorf("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요")
 			}
+			return
 		case 2:
 			if isContain, index := Contains(buyer.bucket, item); isContain {
 				if buyer.bucket[index].amount+buyAmount > item.amount {
-					panic("잔여 수량을 초과했습니다.")
+					err = fmt.Errorf("잔여 수량을 초과했습니다")
 				} else {
 					buyer.bucket[index].amount += buyAmount
 				}
@@ -207,25 +192,19 @@ func ClearBucket(buyer *Buyer) {
 	buyer.bucket = make([]*Item, 0, 5)
 }
 
-func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery, deliveryChan chan bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(r)
-		}
-	}()
-
+func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery, deliveryChan chan bool) (err error) {
 	if bucketTotal := BucketTotal(buyer.bucket); bucketTotal > buyer.point {
-		panic(fmt.Sprintf("마일리지가 %d점 부족합니다.", bucketTotal-buyer.point))
+		err = fmt.Errorf("마일리지가 %d점 부족합니다", bucketTotal-buyer.point)
 	} else if isAmountOver, overList := IsAmountOver(items, buyer.bucket); isAmountOver {
 		var errStr string
 		for _, v := range overList {
-			errStr += fmt.Sprintf("%s가 %d개 초과했습니다.\n", v.name, v.amount)
+			errStr += fmt.Sprintf("%s가 %d개 초과했습니다\n", v.name, v.amount)
 		}
-		panic(errStr)
+		err = fmt.Errorf(errStr)
 	} else if len(buyer.bucket) == 0 {
-		panic("주문 가능한 목록이 없습니다.")
+		err = fmt.Errorf("주문 가능한 목록이 없습니다")
 	} else if delivery.numOrder > 5 {
-		panic("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요.")
+		err = fmt.Errorf("배송 한도를 초과했습니다. 배송이 완료되면 주문하세요")
 	} else {
 		for _, v := range buyer.bucket {
 			delivery.deliveryList = append(delivery.deliveryList, &Item{v.name, v.price, v.amount})
@@ -240,6 +219,7 @@ func BuyBucket(buyer *Buyer, items []*Item, delivery *Delivery, deliveryChan cha
 
 		ClearBucket(buyer)
 	}
+	return
 }
 
 func DeliveryStatus(deliveryChan chan bool, delivery *Delivery, i int) {
@@ -302,11 +282,12 @@ func main() {
 			PrintItems(items)
 			ReturnToMenu()
 		case 2: // 상품 구매
-			if item, buyAmount, err := ChoiceItem(items, buyer); err {
+			if item, buyAmount, err := ChoiceItem(items, buyer); err != nil {
+				fmt.Println(err)
 				ReturnToMenu()
 				break
-			} else {
-				BuyItem(buyer, item, buyAmount, delivery, deliveryChan)
+			} else if err := BuyItem(buyer, item, buyAmount, delivery, deliveryChan); err != nil {
+				fmt.Println(err)
 			}
 			ReturnToMenu()
 		case 3: // 잔여 마일리지 확인
@@ -327,7 +308,9 @@ func main() {
 			ClearBucket(buyer)
 			ReturnToMenu()
 		case 7: // 장바구니 상품 주문
-			BuyBucket(buyer, items, delivery, deliveryChan)
+			if err := BuyBucket(buyer, items, delivery, deliveryChan); err != nil {
+				fmt.Println(err)
+			}
 			ReturnToMenu()
 		case 8: // 프로그램 종료
 			fmt.Print("프로그램을 종료합니다.")
