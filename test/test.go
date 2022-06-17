@@ -1,16 +1,36 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )
 
-var errRequestFailed = errors.New("request failed")
+type Result struct {
+	url    string
+	status string
+}
 
 func main() {
-	resp, err := http.Get("https://www.rettid.com/")
-	if err != nil || resp.StatusCode >= 400 {
-		fmt.Println(errRequestFailed)
+	channel := make(chan Result)
+
+	go hitURL("https://jerryjerryjerry.tistory.com/99", channel) // resp ok err nil
+	go hitURL("https://www.rettid.com/", channel)
+
+	for i := 0; i < 2; i++ {
+		c := <-channel
+		fmt.Println(c.url, c.status)
 	}
+}
+
+func hitURL(url string, channel chan<- Result) {
+	fmt.Println("Checking:", url)
+	status := ""
+	if resp, err := http.Get(url); resp == nil {
+		status = "wrong address"
+	} else if err != nil {
+		status = "false"
+	} else {
+		status = "ok"
+	}
+	channel <- Result{url, status}
 }
