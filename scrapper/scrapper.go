@@ -2,48 +2,53 @@ package main
 
 import (
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"log"
 	"net/http"
+	"strconv"
 )
 
-type requestResult struct {
-	url    string
-	status string
-}
+var limit = 10
+var baseURL = "https://kr.indeed.com/jobs?q=golang&limit=" + strconv.Itoa(limit) + "&start="
 
 func main() {
-	channel := make(chan requestResult)
+	totalPages := getPages()
+	fmt.Println(totalPages)
 
-	urls := []string{
-		"https://www.airbnb.com/",
-		"https://www.google.com/",
-		"https://www.amazon.com/",
-		"https://www.reddit.com/",
-		"https://www.rettid.com/",
-		"https://www.google.com/",
-		"https://soundcloud.com/",
-		"https://www.facebook.com/",
-		"https://www.instagram.com/",
-		"https://nomadcoders.co/",
-	}
-
-	for _, url := range urls {
-		go hitURL(url, channel)
-	}
-
-	for range urls {
-		c := <-channel
-		fmt.Println(c.url, c.status)
+	for i := 0; i < totalPages; i++ {
+		getPage(i)
 	}
 }
 
-func hitURL(url string, channel chan<- requestResult) {
-	status := ""
-	if resp, err := http.Get(url); resp == nil {
-		status = "wrong address"
-	} else if err != nil {
-		status = "false"
-	} else {
-		status = "ok"
+func getPage(page int) {
+	pageURL := baseURL + strconv.Itoa(limit*page)
+	fmt.Println("Requesting", pageURL)
+}
+
+func getPages() (pages int) {
+	res, err := http.Get(baseURL + "0")
+	checkError(err)
+	checkStatusCode(res)
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	checkError(err)
+
+	doc.Find(".pagination").Each(func(i int, s *goquery.Selection) {
+		pages = s.Find("a").Length()
+	})
+
+	return
+}
+
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
-	channel <- requestResult{url, status}
+}
+
+func checkStatusCode(res *http.Response) {
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %s", res.Status)
+	}
 }
