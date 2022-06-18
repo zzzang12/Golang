@@ -9,3 +9,5 @@
 # Go 모듈
 *.mod
 *.sum
+# IDE 세팅 폴더
+.idea/
