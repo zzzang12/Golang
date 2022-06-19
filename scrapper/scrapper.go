@@ -1,16 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"encoding/csv"
 	"github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 )
 
-type ExtractedJob struct {
+type Job struct {
 	id              string
-	jobTitle        string
+	title           string
 	companyName     string
 	companyLocation string
 	snippet         string
@@ -19,18 +21,38 @@ type ExtractedJob struct {
 var baseURL = "https://kr.indeed.com/jobs?q=golang&start="
 
 func main() {
+	var jobs []Job
 	totalPages := getPages()
-	fmt.Println(totalPages)
-
 	for i := 0; i < totalPages; i++ {
-		getPage(i)
+		extractedJobs := getPage(i)
+		jobs = append(jobs, extractedJobs...)
+	}
+
+	printJobs(jobs)
+
+	writeJobs(jobs)
+}
+
+func writeJobs(jobs []Job) {
+	file, err := os.Create("jobs.csv")
+	checkError(err)
+
+	w := csv.NewWriter(file)
+	defer w.Flush()
+
+	headers := []string{"Link", "Job Title", "Company Name", "Company Location", "Snippet"}
+	err = w.Write(headers)
+	checkError(err)
+
+	for _, job := range jobs {
+		jobSlice := []string{"https://kr.indeed.com/viewjob?jk=" + job.id, job.title, job.companyName, job.companyLocation, job.snippet}
+		err = w.Write(jobSlice)
+		checkError(err)
 	}
 }
 
-func getPage(page int) {
+func getPage(page int) (jobs []Job) {
 	pageURL := baseURL + strconv.Itoa(10*page)
-	fmt.Println("Requesting", pageURL)
-
 	res, err := http.Get(pageURL)
 	checkError(err)
 	checkStatusCode(res)
@@ -40,19 +62,31 @@ func getPage(page int) {
 	checkError(err)
 
 	doc.Find(".cardOutline").Each(func(i int, card *goquery.Selection) {
-		id, _ := card.Find(".jcs-JobTitle").Attr("data-jk")
-		jobTitle := card.Find(".jcs-JobTitle>span").Text()
-		companyName := card.Find(".companyName").Text()
-		companyLocation := card.Find(".companyLocation").Text()
-		snippet := card.Find(".job-snippet").Text()
-		extractedJob := ExtractedJob{id, jobTitle, companyName, companyLocation, snippet}
-		fmt.Println(extractedJob.jobTitle, "/", extractedJob.companyName, "/", extractedJob.companyLocation)
-		fmt.Println(extractedJob.snippet)
+		job := extractJob(card)
+		jobs = append(jobs, job)
 	})
+	return
+}
+
+func printJobs(jobs []Job) {
+	for _, job := range jobs {
+		println(job.title, " / ", job.companyName, " / ", job.companyLocation)
+		println(job.snippet)
+	}
+}
+
+func extractJob(card *goquery.Selection) (job Job) {
+	id, _ := card.Find(".jcs-JobTitle").Attr("data-jk")
+	title := card.Find(".jcs-JobTitle>span").Text()
+	companyName := card.Find(".companyName").Text()
+	companyLocation := card.Find(".companyLocation").Text()
+	snippet := strings.TrimSpace(card.Find(".job-snippet").Text())
+	job = Job{id, title, companyName, companyLocation, snippet}
+	return
 }
 
 func getPages() (pages int) {
-	res, err := http.Get(baseURL + "0")
+	res, err := http.Get(baseURL)
 	checkError(err)
 	checkStatusCode(res)
 	defer res.Body.Close()
